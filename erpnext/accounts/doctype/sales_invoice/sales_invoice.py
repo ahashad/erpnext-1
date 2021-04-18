@@ -36,331 +36,330 @@ form_grid_templates = {
 }
 
 class SalesInvoice(SellingController):
-    def __init__(self, *args, **kwargs):
-        super(SalesInvoice, self).__init__(*args, **kwargs)
-        self.status_updater = [{
-                'source_dt': 'Sales Invoice Item',
-                'target_field': 'billed_amt',
-                'target_ref_field': 'amount',
-                'target_dt': 'Sales Order Item',
-                'join_field': 'so_detail',
-                'target_parent_dt': 'Sales Order',
-                'target_parent_field': 'per_billed',
-                'source_field': 'amount',
-                'join_field': 'so_detail',
-                'percent_join_field': 'sales_order',
-                'status_field': 'billing_status',
-                'keyword': 'Billed',
-                'overflow_type': 'billing'
-        }]
-
-    def set_indicator(self):
-        """Set indicator for portal"""
-        if self.outstanding_amount < 0:
-            self.indicator_title = _("Credit Note Issued")
-            self.indicator_color = "gray"
-        elif self.outstanding_amount > 0 and getdate(self.due_date) >= getdate(nowdate()):
-            self.indicator_color = "orange"
-            self.indicator_title = _("Unpaid")
-        elif self.outstanding_amount > 0 and getdate(self.due_date) < getdate(nowdate()):
-            self.indicator_color = "red"
-            self.indicator_title = _("Overdue")
-        elif cint(self.is_return) == 1:
-            self.indicator_title = _("Return")
-            self.indicator_color = "gray"
-        else:
-            self.indicator_color = "green"
-            self.indicator_title = _("Paid")
-
-    def validate(self):
-        super(SalesInvoice, self).validate()
-        self.validate_auto_set_posting_time()
-
-        if not self.is_pos:
-            self.so_dn_required()
-
-        self.set_tax_withholding()
-
-        self.validate_proj_cust()
-        self.validate_pos_return()
-        self.validate_with_previous_doc()
-        self.validate_uom_is_integer("stock_uom", "stock_qty")
-        self.validate_uom_is_integer("uom", "qty")
-        self.check_sales_order_on_hold_or_close("sales_order")
-        self.validate_debit_to_acc()
-        self.clear_unallocated_advances("Sales Invoice Advance", "advances")
-        self.add_remarks()
-        self.validate_write_off_account()
-        self.validate_account_for_change_amount()
-        self.validate_fixed_asset()
-        self.set_income_account_for_fixed_assets()
-        self.validate_item_cost_centers()
-        validate_inter_company_party(self.doctype, self.customer, self.company, self.inter_company_invoice_reference)
-
-        if cint(self.is_pos):
-            self.validate_pos()
-
-        if cint(self.update_stock):
-            self.validate_dropship_item()
-            self.validate_item_code()
-            self.validate_warehouse()
-            self.update_current_stock()
-            self.validate_delivery_note()
-
-        # validate service stop date to lie in between start and end date
-        validate_service_stop_date(self)
-
-        if not self.is_opening:
-            self.is_opening = 'No'
-
-        if self._action != 'submit' and self.update_stock and not self.is_return:
-            set_batch_nos(self, 'warehouse', True)
-
-        if self.redeem_loyalty_points:
-            lp = frappe.get_doc('Loyalty Program', self.loyalty_program)
-            self.loyalty_redemption_account = lp.expense_account if not self.loyalty_redemption_account else self.loyalty_redemption_account
-            self.loyalty_redemption_cost_center = lp.cost_center if not self.loyalty_redemption_cost_center else self.loyalty_redemption_cost_center
-
-        self.set_against_income_account()
-        self.validate_c_form()
-        self.validate_time_sheets_are_submitted()
-        self.validate_multiple_billing("Delivery Note", "dn_detail", "amount", "items")
-        if not self.is_return:
-            self.validate_serial_numbers()
-        self.update_packing_list()
-        self.set_billing_hours_and_amount()
-        self.update_timesheet_billing_for_project()
-        self.set_status()
-        if self.is_pos and not self.is_return:
-            self.verify_payment_amount_is_positive()
-
-        #validate amount in mode of payments for returned invoices for pos must be negative
-        if self.is_pos and self.is_return:
-            self.verify_payment_amount_is_negative()
+	def __init__(self, *args, **kwargs):
+		super(SalesInvoice, self).__init__(*args, **kwargs)
+		self.status_updater = [{
+			'source_dt': 'Sales Invoice Item',
+			'target_field': 'billed_amt',
+			'target_ref_field': 'amount',
+			'target_dt': 'Sales Order Item',
+			'join_field': 'so_detail',
+			'target_parent_dt': 'Sales Order',
+			'target_parent_field': 'per_billed',
+			'source_field': 'amount',
+			'percent_join_field': 'sales_order',
+			'status_field': 'billing_status',
+			'keyword': 'Billed',
+			'overflow_type': 'billing'
+		}]
+
+	def set_indicator(self):
+		"""Set indicator for portal"""
+		if self.outstanding_amount < 0:
+			self.indicator_title = _("Credit Note Issued")
+			self.indicator_color = "gray"
+		elif self.outstanding_amount > 0 and getdate(self.due_date) >= getdate(nowdate()):
+			self.indicator_color = "orange"
+			self.indicator_title = _("Unpaid")
+		elif self.outstanding_amount > 0 and getdate(self.due_date) < getdate(nowdate()):
+			self.indicator_color = "red"
+			self.indicator_title = _("Overdue")
+		elif cint(self.is_return) == 1:
+			self.indicator_title = _("Return")
+			self.indicator_color = "gray"
+		else:
+			self.indicator_color = "green"
+			self.indicator_title = _("Paid")
+
+	def validate(self):
+		super(SalesInvoice, self).validate()
+		self.validate_auto_set_posting_time()
+
+		if not self.is_pos:
+			self.so_dn_required()
+
+		self.set_tax_withholding()
+
+		self.validate_proj_cust()
+		self.validate_pos_return()
+		self.validate_with_previous_doc()
+		self.validate_uom_is_integer("stock_uom", "stock_qty")
+		self.validate_uom_is_integer("uom", "qty")
+		self.check_sales_order_on_hold_or_close("sales_order")
+		self.validate_debit_to_acc()
+		self.clear_unallocated_advances("Sales Invoice Advance", "advances")
+		self.add_remarks()
+		self.validate_write_off_account()
+		self.validate_account_for_change_amount()
+		self.validate_fixed_asset()
+		self.set_income_account_for_fixed_assets()
+		self.validate_item_cost_centers()
+		validate_inter_company_party(self.doctype, self.customer, self.company, self.inter_company_invoice_reference)
+
+		if cint(self.is_pos):
+			self.validate_pos()
+
+		if cint(self.update_stock):
+			self.validate_dropship_item()
+			self.validate_item_code()
+			self.validate_warehouse()
+			self.update_current_stock()
+			self.validate_delivery_note()
+
+		# validate service stop date to lie in between start and end date
+		validate_service_stop_date(self)
+
+		if not self.is_opening:
+			self.is_opening = 'No'
+
+		if self._action != 'submit' and self.update_stock and not self.is_return:
+			set_batch_nos(self, 'warehouse', True)
+
+		if self.redeem_loyalty_points:
+			lp = frappe.get_doc('Loyalty Program', self.loyalty_program)
+			self.loyalty_redemption_account = lp.expense_account if not self.loyalty_redemption_account else self.loyalty_redemption_account
+			self.loyalty_redemption_cost_center = lp.cost_center if not self.loyalty_redemption_cost_center else self.loyalty_redemption_cost_center
+
+		self.set_against_income_account()
+		self.validate_c_form()
+		self.validate_time_sheets_are_submitted()
+		self.validate_multiple_billing("Delivery Note", "dn_detail", "amount", "items")
+		if not self.is_return:
+			self.validate_serial_numbers()
+		self.update_packing_list()
+		self.set_billing_hours_and_amount()
+		self.update_timesheet_billing_for_project()
+		self.set_status()
+		if self.is_pos and not self.is_return:
+			self.verify_payment_amount_is_positive()
+
+		#validate amount in mode of payments for returned invoices for pos must be negative
+		if self.is_pos and self.is_return:
+			self.verify_payment_amount_is_negative()
+
+		if self.redeem_loyalty_points and self.loyalty_program and self.loyalty_points and not self.is_consolidated:
+			validate_loyalty_points(self, self.loyalty_points)
 
-        if self.redeem_loyalty_points and self.loyalty_program and self.loyalty_points and not self.is_consolidated:
-            validate_loyalty_points(self, self.loyalty_points)
+	def validate_fixed_asset(self):
+		for d in self.get("items"):
+			if d.is_fixed_asset and d.meta.get_field("asset") and d.asset:
+				asset = frappe.get_doc("Asset", d.asset)
+				if self.doctype == "Sales Invoice" and self.docstatus == 1:
+					if self.update_stock:
+						frappe.throw(_("'Update Stock' cannot be checked for fixed asset sale"))
 
-    def validate_fixed_asset(self):
-        for d in self.get("items"):
-            if d.is_fixed_asset and d.meta.get_field("asset") and d.asset:
-                asset = frappe.get_doc("Asset", d.asset)
-                if self.doctype == "Sales Invoice" and self.docstatus == 1:
-                    if self.update_stock:
-                        frappe.throw(_("'Update Stock' cannot be checked for fixed asset sale"))
+					elif asset.status in ("Scrapped", "Cancelled", "Sold"):
+						frappe.throw(_("Row #{0}: Asset {1} cannot be submitted, it is already {2}").format(d.idx, d.asset, asset.status))
 
-                    elif asset.status in ("Scrapped", "Cancelled", "Sold"):
-                        frappe.throw(_("Row #{0}: Asset {1} cannot be submitted, it is already {2}").format(d.idx, d.asset, asset.status))
+	def validate_item_cost_centers(self):
+		for item in self.items:
+			cost_center_company = frappe.get_cached_value("Cost Center", item.cost_center, "company")
+			if cost_center_company != self.company:
+				frappe.throw(_("Row #{0}: Cost Center {1} does not belong to company {2}").format(frappe.bold(item.idx), frappe.bold(item.cost_center), frappe.bold(self.company)))
 
-    def validate_item_cost_centers(self):
-        for item in self.items:
-            cost_center_company = frappe.get_cached_value("Cost Center", item.cost_center, "company")
-            if cost_center_company != self.company:
-                frappe.throw(_("Row #{0}: Cost Center {1} does not belong to company {2}").format(frappe.bold(item.idx), frappe.bold(item.cost_center), frappe.bold(self.company)))
+	def set_tax_withholding(self):
+		tax_withholding_details = get_party_tax_withholding_details(self)
 
-    def set_tax_withholding(self):
-        tax_withholding_details = get_party_tax_withholding_details(self)
+		if not tax_withholding_details:
+			return
 
-        if not tax_withholding_details:
-            return
+		accounts = []
+		tax_withholding_account = tax_withholding_details.get("account_head")
 
-        accounts = []
-        tax_withholding_account = tax_withholding_details.get("account_head")
+		for d in self.taxes:
+			if d.account_head == tax_withholding_account:
+				d.update(tax_withholding_details)
+			accounts.append(d.account_head)
 
-        for d in self.taxes:
-            if d.account_head == tax_withholding_account:
-                d.update(tax_withholding_details)
-            accounts.append(d.account_head)
+		if not accounts or tax_withholding_account not in accounts:
+			self.append("taxes", tax_withholding_details)
+
+		to_remove = [d for d in self.taxes
+			if not d.tax_amount and d.charge_type == "Actual" and d.account_head == tax_withholding_account]
+
+		for d in to_remove:
+			self.remove(d)
+
+		# calculate totals again after applying TDS
+		self.calculate_taxes_and_totals()
+
+	def before_save(self):
+		set_account_for_mode_of_payment(self)
+
+	def on_submit(self):
+		self.validate_pos_paid_amount()
+
+		if not self.auto_repeat:
+			frappe.get_doc('Authorization Control').validate_approving_authority(self.doctype,
+				self.company, self.base_grand_total, self)
+
+		self.check_prev_docstatus()
+
+		if self.is_return and not self.update_billed_amount_in_sales_order:
+			# NOTE status updating bypassed for is_return
+			self.status_updater = []
+
+		self.update_status_updater_args()
+		self.update_prevdoc_status()
+		self.update_billing_status_in_dn()
+		self.clear_unallocated_mode_of_payments()
+
+		# Updating stock ledger should always be called after updating prevdoc status,
+		# because updating reserved qty in bin depends upon updated delivered qty in SO
+		if self.update_stock == 1:
+			self.update_stock_ledger()
 
-        if not accounts or tax_withholding_account not in accounts:
-            self.append("taxes", tax_withholding_details)
-
-        to_remove = [d for d in self.taxes
-                if not d.tax_amount and d.charge_type == "Actual" and d.account_head == tax_withholding_account]
-
-        for d in to_remove:
-            self.remove(d)
-
-        # calculate totals again after applying TDS
-        self.calculate_taxes_and_totals()
-
-    def before_save(self):
-        set_account_for_mode_of_payment(self)
-
-    def on_submit(self):
-        self.validate_pos_paid_amount()
-
-        if not self.auto_repeat:
-            frappe.get_doc('Authorization Control').validate_approving_authority(self.doctype,
-                    self.company, self.base_grand_total, self)
-
-        self.check_prev_docstatus()
-
-        if self.is_return and not self.update_billed_amount_in_sales_order:
-            # NOTE status updating bypassed for is_return
-            self.status_updater = []
-
-        self.update_status_updater_args()
-        self.update_prevdoc_status()
-        self.update_billing_status_in_dn()
-        self.clear_unallocated_mode_of_payments()
-
-        # Updating stock ledger should always be called after updating prevdoc status,
-        # because updating reserved qty in bin depends upon updated delivered qty in SO
-        if self.update_stock == 1:
-            self.update_stock_ledger()
-
-        # this sequence because outstanding may get -ve
-        self.make_gl_entries()
-
-        if self.update_stock == 1:
-            self.repost_future_sle_and_gle()
-
-        if self.update_stock == 1:
-            self.repost_future_sle_and_gle()
-
-        if not self.is_return:
-            self.update_billing_status_for_zero_amount_refdoc("Delivery Note")
-            self.update_billing_status_for_zero_amount_refdoc("Sales Order")
-            self.check_credit_limit()
+		# this sequence because outstanding may get -ve
+		self.make_gl_entries()
+
+		if self.update_stock == 1:
+			self.repost_future_sle_and_gle()
+
+		if self.update_stock == 1:
+			self.repost_future_sle_and_gle()
+
+		if not self.is_return:
+			self.update_billing_status_for_zero_amount_refdoc("Delivery Note")
+			self.update_billing_status_for_zero_amount_refdoc("Sales Order")
+			self.check_credit_limit()
 
-        self.update_serial_no()
-
-        if not cint(self.is_pos) == 1 and not self.is_return:
-            self.update_against_document_in_jv()
-
-        self.update_time_sheet(self.name)
-
-        if frappe.db.get_single_value('Selling Settings', 'sales_update_frequency') == "Each Transaction":
-            update_company_current_month_sales(self.company)
-            self.update_project()
-        update_linked_doc(self.doctype, self.name, self.inter_company_invoice_reference)
-
-        # create the loyalty point ledger entry if the customer is enrolled in any loyalty program
-        if not self.is_return and not self.is_consolidated and self.loyalty_program:
-            self.make_loyalty_point_entry()
-        elif self.is_return and self.return_against and not self.is_consolidated and self.loyalty_program:
-            against_si_doc = frappe.get_doc("Sales Invoice", self.return_against)
-            against_si_doc.delete_loyalty_point_entry()
-            against_si_doc.make_loyalty_point_entry()
-        if self.redeem_loyalty_points and not self.is_consolidated and self.loyalty_points:
-            self.apply_loyalty_points()
-
-        # Healthcare Service Invoice.
-        domain_settings = frappe.get_doc('Domain Settings')
-        active_domains = [d.domain for d in domain_settings.active_domains]
-
-        if "Healthcare" in active_domains:
-            manage_invoice_submit_cancel(self, "on_submit")
-
-    def validate_pos_return(self):
-
-        if self.is_pos and self.is_return:
-            total_amount_in_payments = 0
-            for payment in self.payments:
-                total_amount_in_payments += payment.amount
-            invoice_total = self.rounded_total or self.grand_total
-            if total_amount_in_payments < invoice_total:
-                frappe.throw(_("Total payments amount can't be greater than {}").format(-invoice_total))
-
-    def validate_pos_paid_amount(self):
-        if len(self.payments) == 0 and self.is_pos:
-            frappe.throw(_("At least one mode of payment is required for POS invoice."))
-
-    def check_if_consolidated_invoice(self):
-        # since POS Invoice extends Sales Invoice, we explicitly check if doctype is Sales Invoice
-        if self.doctype == "Sales Invoice" and self.is_consolidated:
-            invoice_or_credit_note = "consolidated_credit_note" if self.is_return else "consolidated_invoice"
-            pos_closing_entry = frappe.get_all(
-                    "POS Invoice Merge Log",
-                    filters={invoice_or_credit_note: self.name},
-                    pluck="pos_closing_entry"
-            )
-            if pos_closing_entry:
-                msg = _("To cancel a {} you need to cancel the POS Closing Entry {}. ").format(
-                        frappe.bold("Consolidated Sales Invoice"),
-                        get_link_to_form("POS Closing Entry", pos_closing_entry[0])
-                )
-                frappe.throw(msg, title=_("Not Allowed"))
-
-    def before_cancel(self):
-        self.check_if_consolidated_invoice()
-
-        super(SalesInvoice, self).before_cancel()
-        self.update_time_sheet(None)
-
-    def on_cancel(self):
-        super(SalesInvoice, self).on_cancel()
-
-        self.check_sales_order_on_hold_or_close("sales_order")
-
-        if self.is_return and not self.update_billed_amount_in_sales_order:
-            # NOTE status updating bypassed for is_return
-            self.status_updater = []
-
-        self.update_status_updater_args()
-        self.update_prevdoc_status()
-        self.update_billing_status_in_dn()
-
-        if not self.is_return:
-            self.update_billing_status_for_zero_amount_refdoc("Delivery Note")
-            self.update_billing_status_for_zero_amount_refdoc("Sales Order")
-            self.update_serial_no(in_cancel=True)
-
-        self.validate_c_form_on_cancel()
-
-        # Updating stock ledger should always be called after updating prevdoc status,
-        # because updating reserved qty in bin depends upon updated delivered qty in SO
-        if self.update_stock == 1:
-            self.update_stock_ledger()
-
-        self.make_gl_entries_on_cancel()
-
-        if self.update_stock == 1:
-            self.repost_future_sle_and_gle()
-
-        frappe.db.set(self, 'status', 'Cancelled')
-
-        if frappe.db.get_single_value('Selling Settings', 'sales_update_frequency') == "Each Transaction":
-            update_company_current_month_sales(self.company)
-            self.update_project()
-        if not self.is_return and not self.is_consolidated and self.loyalty_program:
-            self.delete_loyalty_point_entry()
-        elif self.is_return and self.return_against and not self.is_consolidated and self.loyalty_program:
-            against_si_doc = frappe.get_doc("Sales Invoice", self.return_against)
-            against_si_doc.delete_loyalty_point_entry()
-            against_si_doc.make_loyalty_point_entry()
-
-        unlink_inter_company_doc(self.doctype, self.name, self.inter_company_invoice_reference)
-
-        # Healthcare Service Invoice.
-        domain_settings = frappe.get_doc('Domain Settings')
-        active_domains = [d.domain for d in domain_settings.active_domains]
-
-        if "Healthcare" in active_domains:
-            manage_invoice_submit_cancel(self, "on_cancel")
-
-        self.ignore_linked_doctypes = ('GL Entry', 'Stock Ledger Entry', 'Repost Item Valuation')
-
-    def update_status_updater_args(self):
-        if cint(self.update_stock):
-            self.status_updater.append({
-                    'source_dt':'Sales Invoice Item',
-                    'target_dt':'Sales Order Item',
-                    'target_parent_dt':'Sales Order',
-                    'target_parent_field':'per_delivered',
-                    'target_field':'delivered_qty',
-                    'target_ref_field':'qty',
-                    'source_field':'qty',
-                    'join_field':'so_detail',
-                    'percent_join_field':'sales_order',
-                    'status_field':'delivery_status',
-                    'keyword':'Delivered',
-                    'second_source_dt': 'Delivery Note Item',
-                    'second_source_field': 'qty',
-                    'second_join_field': 'so_detail',
-                    'overflow_type': 'delivery',
-                    'extra_cond': """ and exists(select name from `tabSales Invoice`
+		self.update_serial_no()
+
+		if not cint(self.is_pos) == 1 and not self.is_return:
+			self.update_against_document_in_jv()
+
+		self.update_time_sheet(self.name)
+
+		if frappe.db.get_single_value('Selling Settings', 'sales_update_frequency') == "Each Transaction":
+			update_company_current_month_sales(self.company)
+			self.update_project()
+		update_linked_doc(self.doctype, self.name, self.inter_company_invoice_reference)
+
+		# create the loyalty point ledger entry if the customer is enrolled in any loyalty program
+		if not self.is_return and not self.is_consolidated and self.loyalty_program:
+			self.make_loyalty_point_entry()
+		elif self.is_return and self.return_against and not self.is_consolidated and self.loyalty_program:
+			against_si_doc = frappe.get_doc("Sales Invoice", self.return_against)
+			against_si_doc.delete_loyalty_point_entry()
+			against_si_doc.make_loyalty_point_entry()
+		if self.redeem_loyalty_points and not self.is_consolidated and self.loyalty_points:
+			self.apply_loyalty_points()
+
+		# Healthcare Service Invoice.
+		domain_settings = frappe.get_doc('Domain Settings')
+		active_domains = [d.domain for d in domain_settings.active_domains]
+
+		if "Healthcare" in active_domains:
+			manage_invoice_submit_cancel(self, "on_submit")
+
+	def validate_pos_return(self):
+
+		if self.is_pos and self.is_return:
+			total_amount_in_payments = 0
+			for payment in self.payments:
+				total_amount_in_payments += payment.amount
+			invoice_total = self.rounded_total or self.grand_total
+			if total_amount_in_payments < invoice_total:
+				frappe.throw(_("Total payments amount can't be greater than {}").format(-invoice_total))
+
+	def validate_pos_paid_amount(self):
+		if len(self.payments) == 0 and self.is_pos:
+			frappe.throw(_("At least one mode of payment is required for POS invoice."))
+
+	def check_if_consolidated_invoice(self):
+		# since POS Invoice extends Sales Invoice, we explicitly check if doctype is Sales Invoice
+		if self.doctype == "Sales Invoice" and self.is_consolidated:
+			invoice_or_credit_note = "consolidated_credit_note" if self.is_return else "consolidated_invoice"
+			pos_closing_entry = frappe.get_all(
+				"POS Invoice Merge Log",
+				filters={ invoice_or_credit_note: self.name },
+				pluck="pos_closing_entry"
+			)
+			if pos_closing_entry:
+				msg = _("To cancel a {} you need to cancel the POS Closing Entry {}.").format(
+					frappe.bold("Consolidated Sales Invoice"),
+					get_link_to_form("POS Closing Entry", pos_closing_entry[0])
+				)
+				frappe.throw(msg, title=_("Not Allowed"))
+
+	def before_cancel(self):
+		self.check_if_consolidated_invoice()
+
+		super(SalesInvoice, self).before_cancel()
+		self.update_time_sheet(None)
+
+	def on_cancel(self):
+		super(SalesInvoice, self).on_cancel()
+
+		self.check_sales_order_on_hold_or_close("sales_order")
+
+		if self.is_return and not self.update_billed_amount_in_sales_order:
+			# NOTE status updating bypassed for is_return
+			self.status_updater = []
+
+		self.update_status_updater_args()
+		self.update_prevdoc_status()
+		self.update_billing_status_in_dn()
+
+		if not self.is_return:
+			self.update_billing_status_for_zero_amount_refdoc("Delivery Note")
+			self.update_billing_status_for_zero_amount_refdoc("Sales Order")
+			self.update_serial_no(in_cancel=True)
+
+		self.validate_c_form_on_cancel()
+
+		# Updating stock ledger should always be called after updating prevdoc status,
+		# because updating reserved qty in bin depends upon updated delivered qty in SO
+		if self.update_stock == 1:
+			self.update_stock_ledger()
+
+		self.make_gl_entries_on_cancel()
+
+		if self.update_stock == 1:
+			self.repost_future_sle_and_gle()
+
+		frappe.db.set(self, 'status', 'Cancelled')
+
+		if frappe.db.get_single_value('Selling Settings', 'sales_update_frequency') == "Each Transaction":
+			update_company_current_month_sales(self.company)
+			self.update_project()
+		if not self.is_return and not self.is_consolidated and self.loyalty_program:
+			self.delete_loyalty_point_entry()
+		elif self.is_return and self.return_against and not self.is_consolidated and self.loyalty_program:
+			against_si_doc = frappe.get_doc("Sales Invoice", self.return_against)
+			against_si_doc.delete_loyalty_point_entry()
+			against_si_doc.make_loyalty_point_entry()
+
+		unlink_inter_company_doc(self.doctype, self.name, self.inter_company_invoice_reference)
+
+		# Healthcare Service Invoice.
+		domain_settings = frappe.get_doc('Domain Settings')
+		active_domains = [d.domain for d in domain_settings.active_domains]
+
+		if "Healthcare" in active_domains:
+			manage_invoice_submit_cancel(self, "on_cancel")
+
+		self.ignore_linked_doctypes = ('GL Entry', 'Stock Ledger Entry', 'Repost Item Valuation')
+
+	def update_status_updater_args(self):
+		if cint(self.update_stock):
+			self.status_updater.append({
+				'source_dt':'Sales Invoice Item',
+				'target_dt':'Sales Order Item',
+				'target_parent_dt':'Sales Order',
+				'target_parent_field':'per_delivered',
+				'target_field':'delivered_qty',
+				'target_ref_field':'qty',
+				'source_field':'qty',
+				'join_field':'so_detail',
+				'percent_join_field':'sales_order',
+				'status_field':'delivery_status',
+				'keyword':'Delivered',
+				'second_source_dt': 'Delivery Note Item',
+				'second_source_field': 'qty',
+				'second_join_field': 'so_detail',
+				'overflow_type': 'delivery',
+				'extra_cond': """ and exists(select name from `tabSales Invoice`
 					where name=`tabSales Invoice Item`.parent and update_stock = 1)"""
             })
             if cint(self.is_return):
@@ -549,15 +548,15 @@ class SalesInvoice(SellingController):
         if not account:
             frappe.throw(_("Debit To is required"), title=_("Account Missing"))
 
-        if account.report_type != "Balance Sheet":
-            msg = _("Please ensure {} account is a Balance Sheet account. ").format(frappe.bold("Debit To"))
-            msg += _("You can change the parent account to a Balance Sheet account or select a different account.")
-            frappe.throw(msg, title=_("Invalid Account"))
+		if account.report_type != "Balance Sheet":
+			msg = _("Please ensure {} account is a Balance Sheet account.").format(frappe.bold("Debit To")) + " "
+			msg += _("You can change the parent account to a Balance Sheet account or select a different account.")
+			frappe.throw(msg, title=_("Invalid Account"))
 
-        if self.customer and account.account_type != "Receivable":
-            msg = _("Please ensure {} account is a Receivable account. ").format(frappe.bold("Debit To"))
-            msg += _("Change the account type to Receivable or select a different account.")
-            frappe.throw(msg, title=_("Invalid Account"))
+		if self.customer and account.account_type != "Receivable":
+			msg = _("Please ensure {} account is a Receivable account.").format(frappe.bold("Debit To")) + " "
+			msg += _("Change the account type to Receivable or select a different account.")
+			frappe.throw(msg, title=_("Invalid Account"))
 
         self.party_account_currency = account.account_currency
 
