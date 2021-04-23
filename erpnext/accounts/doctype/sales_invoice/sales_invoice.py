@@ -39,19 +39,18 @@ class SalesInvoice(SellingController):
     def __init__(self, *args, **kwargs):
         super(SalesInvoice, self).__init__(*args, **kwargs)
         self.status_updater = [{
-                'source_dt': 'Sales Invoice Item',
-                'target_field': 'billed_amt',
-                'target_ref_field': 'amount',
-                'target_dt': 'Sales Order Item',
-                'join_field': 'so_detail',
-                'target_parent_dt': 'Sales Order',
-                'target_parent_field': 'per_billed',
-                'source_field': 'amount',
-                'join_field': 'so_detail',
-                'percent_join_field': 'sales_order',
-                'status_field': 'billing_status',
-                'keyword': 'Billed',
-                'overflow_type': 'billing'
+            'source_dt': 'Sales Invoice Item',
+            'target_field': 'billed_amt',
+            'target_ref_field': 'amount',
+            'target_dt': 'Sales Order Item',
+            'join_field': 'so_detail',
+            'target_parent_dt': 'Sales Order',
+            'target_parent_field': 'per_billed',
+            'source_field': 'amount',
+            'percent_join_field': 'sales_order',
+            'status_field': 'billing_status',
+            'keyword': 'Billed',
+            'overflow_type': 'billing'
         }]
 
     def set_indicator(self):
@@ -176,7 +175,7 @@ class SalesInvoice(SellingController):
             self.append("taxes", tax_withholding_details)
 
         to_remove = [d for d in self.taxes
-                if not d.tax_amount and d.charge_type == "Actual" and d.account_head == tax_withholding_account]
+            if not d.tax_amount and d.charge_type == "Actual" and d.account_head == tax_withholding_account]
 
         for d in to_remove:
             self.remove(d)
@@ -192,7 +191,7 @@ class SalesInvoice(SellingController):
 
         if not self.auto_repeat:
             frappe.get_doc('Authorization Control').validate_approving_authority(self.doctype,
-                    self.company, self.base_grand_total, self)
+                self.company, self.base_grand_total, self)
 
         self.check_prev_docstatus()
 
@@ -272,14 +271,14 @@ class SalesInvoice(SellingController):
         if self.doctype == "Sales Invoice" and self.is_consolidated:
             invoice_or_credit_note = "consolidated_credit_note" if self.is_return else "consolidated_invoice"
             pos_closing_entry = frappe.get_all(
-                    "POS Invoice Merge Log",
-                    filters={invoice_or_credit_note: self.name},
-                    pluck="pos_closing_entry"
+                "POS Invoice Merge Log",
+                filters={invoice_or_credit_note: self.name},
+                pluck="pos_closing_entry"
             )
             if pos_closing_entry:
-                msg = _("To cancel a {} you need to cancel the POS Closing Entry {}. ").format(
-                        frappe.bold("Consolidated Sales Invoice"),
-                        get_link_to_form("POS Closing Entry", pos_closing_entry[0])
+                msg = _("To cancel a {} you need to cancel the POS Closing Entry {}.").format(
+                    frappe.bold("Consolidated Sales Invoice"),
+                    get_link_to_form("POS Closing Entry", pos_closing_entry[0])
                 )
                 frappe.throw(msg, title=_("Not Allowed"))
 
@@ -345,23 +344,23 @@ class SalesInvoice(SellingController):
     def update_status_updater_args(self):
         if cint(self.update_stock):
             self.status_updater.append({
-                    'source_dt':'Sales Invoice Item',
-                    'target_dt':'Sales Order Item',
-                    'target_parent_dt':'Sales Order',
-                    'target_parent_field':'per_delivered',
-                    'target_field':'delivered_qty',
-                    'target_ref_field':'qty',
-                    'source_field':'qty',
-                    'join_field':'so_detail',
-                    'percent_join_field':'sales_order',
-                    'status_field':'delivery_status',
-                    'keyword':'Delivered',
-                    'second_source_dt': 'Delivery Note Item',
-                    'second_source_field': 'qty',
-                    'second_join_field': 'so_detail',
-                    'overflow_type': 'delivery',
-                    'extra_cond': """ and exists(select name from `tabSales Invoice`
-					where name=`tabSales Invoice Item`.parent and update_stock = 1)"""
+                'source_dt':'Sales Invoice Item',
+                'target_dt':'Sales Order Item',
+                'target_parent_dt':'Sales Order',
+                'target_parent_field':'per_delivered',
+                'target_field':'delivered_qty',
+                'target_ref_field':'qty',
+                'source_field':'qty',
+                'join_field':'so_detail',
+                'percent_join_field':'sales_order',
+                'status_field':'delivery_status',
+                'keyword':'Delivered',
+                'second_source_dt': 'Delivery Note Item',
+                'second_source_field': 'qty',
+                'second_join_field': 'so_detail',
+                'overflow_type': 'delivery',
+                'extra_cond': """ and exists(select name from `tabSales Invoice`
+                    where name=`tabSales Invoice Item`.parent and update_stock = 1)"""
             })
             if cint(self.is_return):
                 self.status_updater.append({
@@ -550,12 +549,12 @@ class SalesInvoice(SellingController):
             frappe.throw(_("Debit To is required"), title=_("Account Missing"))
 
         if account.report_type != "Balance Sheet":
-            msg = _("Please ensure {} account is a Balance Sheet account. ").format(frappe.bold("Debit To"))
+            msg = _("Please ensure {} account is a Balance Sheet account.").format(frappe.bold("Debit To")) + " "
             msg += _("You can change the parent account to a Balance Sheet account or select a different account.")
             frappe.throw(msg, title=_("Invalid Account"))
 
         if self.customer and account.account_type != "Receivable":
-            msg = _("Please ensure {} account is a Receivable account. ").format(frappe.bold("Debit To"))
+            msg = _("Please ensure {} account is a Receivable account.").format(frappe.bold("Debit To")) + " "
             msg += _("Change the account type to Receivable or select a different account.")
             frappe.throw(msg, title=_("Invalid Account"))
 
@@ -565,7 +564,7 @@ class SalesInvoice(SellingController):
         self.set("payments", self.get("payments", {"amount": ["not in", [0, None, ""]]}))
 
         frappe.db.sql("""delete from `tabSales Invoice Payment` where parent = %s
-			and amount = 0""", self.name)
+            and amount = 0""", self.name)
 
     def validate_with_previous_doc(self):
         super(SalesInvoice, self).validate_with_previous_doc({
@@ -641,7 +640,7 @@ class SalesInvoice(SellingController):
         """check for does customer belong to same project as entered.."""
         if self.project and self.customer:
             res = frappe.db.sql("""select name from `tabProject`
-				where name = %s and (customer = %s or customer is null or customer = '')""",
+                where name = %s and (customer = %s or customer is null or customer = '')""",
                     (self.project, self.customer))
             if not res:
                 throw(_("Customer {0} does not belong to project {1}").format(self.customer,self.project))
@@ -685,7 +684,7 @@ class SalesInvoice(SellingController):
         """ Blank C-form no if C-form applicable marked as 'No'"""
         if self.amended_from and self.c_form_applicable == 'No' and self.c_form_no:
             frappe.db.sql("""delete from `tabC-Form Invoice Detail` where invoice_no = %s
-					and parent = %s""", (self.amended_from, self.c_form_no))
+                    and parent = %s""", (self.amended_from, self.c_form_no))
 
             frappe.db.set(self, 'c_form_no', '')
 
@@ -708,7 +707,7 @@ class SalesInvoice(SellingController):
                 d.actual_qty = bin and flt(bin[0]['actual_qty']) or 0
 
         for d in self.get('packed_items'):
-            bin = frappe.db.sql("select actual_qty, projected_qty from `tabBin` where item_code =	%s and warehouse = %s", (d.item_code, d.warehouse), as_dict = 1)
+            bin = frappe.db.sql("select actual_qty, projected_qty from `tabBin` where item_code =    %s and warehouse = %s", (d.item_code, d.warehouse), as_dict = 1)
             d.actual_qty = bin and flt(bin[0]['actual_qty']) or 0
             d.projected_qty = bin and flt(bin[0]['projected_qty']) or 0
 
@@ -759,12 +758,12 @@ class SalesInvoice(SellingController):
 
     def get_warehouse(self):
         user_pos_profile = frappe.db.sql("""select name, warehouse from `tabPOS Profile`
-			where ifnull(user,'') = %s and company = %s""", (frappe.session['user'], self.company))
+            where ifnull(user,'') = %s and company = %s""", (frappe.session['user'], self.company))
         warehouse = user_pos_profile[0][1] if user_pos_profile else None
 
         if not warehouse:
             global_pos_profile = frappe.db.sql("""select name, warehouse from `tabPOS Profile`
-				where (user is null or user = '') and company = %s""", self.company)
+                where (user is null or user = '') and company = %s""", self.company)
 
             if global_pos_profile:
                 warehouse = global_pos_profile[0][1]
@@ -1087,7 +1086,7 @@ class SalesInvoice(SellingController):
         for d in self.get("items"):
             if d.dn_detail:
                 billed_amt = frappe.db.sql("""select sum(amount) from `tabSales Invoice Item`
-					where dn_detail=%s and docstatus=1""", d.dn_detail)
+                    where dn_detail=%s and docstatus=1""", d.dn_detail)
                 billed_amt = billed_amt and billed_amt[0][0] or 0
                 frappe.db.set_value("Delivery Note Item", d.dn_detail, "billed_amt", billed_amt, update_modified=update_modified)
                 updated_delivery_notes.append(d.delivery_note)
@@ -1239,7 +1238,7 @@ class SalesInvoice(SellingController):
         if not lp_entry:
             return
         against_lp_entry = frappe.db.sql('''select name, invoice from `tabLoyalty Point Entry`
-			where redeem_against=%s''', (lp_entry[0].name), as_dict=1)
+            where redeem_against=%s''', (lp_entry[0].name), as_dict=1)
         if against_lp_entry:
             invoice_list = ", ".join([d.invoice for d in against_lp_entry])
             frappe.throw(
@@ -1258,10 +1257,10 @@ class SalesInvoice(SellingController):
 
     def get_returned_amount(self):
         returned_amount = frappe.db.sql("""
-			select sum(grand_total)
-			from `tabSales Invoice`
-			where docstatus=1 and is_return=1 and ifnull(return_against, '')=%s
-		""", self.name)
+            select sum(grand_total)
+            from `tabSales Invoice`
+            where docstatus=1 and is_return=1 and ifnull(return_against, '')=%s
+        """, self.name)
         return abs(flt(returned_amount[0][0])) if returned_amount else 0
 
     # redeem the loyalty points.
@@ -1389,14 +1388,14 @@ def get_discounting_status(sales_invoice):
     status = None
 
     invoice_discounting_list = frappe.db.sql("""
-		select status
-		from `tabInvoice Discounting` id, `tabDiscounted Invoice` d
-		where
-			id.name = d.parent
-			and d.sales_invoice=%s
-			and id.docstatus=1
-			and status in ('Disbursed', 'Settled')
-	""", sales_invoice)
+        select status
+        from `tabInvoice Discounting` id, `tabDiscounted Invoice` d
+        where
+            id.name = d.parent
+            and d.sales_invoice=%s
+            and id.docstatus=1
+            and status in ('Disbursed', 'Settled')
+    """, sales_invoice)
 
     for d in invoice_discounting_list:
         status = d[0]
@@ -1891,16 +1890,16 @@ def update_multi_mode_option(doc, pos_profile):
 
 def get_all_mode_of_payments(doc):
     return frappe.db.sql("""
-		select mpa.default_account, mpa.parent, mp.type as type
-		from `tabMode of Payment Account` mpa,`tabMode of Payment` mp
-		where mpa.parent = mp.name and mpa.company = %(company)s and mp.enabled = 1""",
+        select mpa.default_account, mpa.parent, mp.type as type
+        from `tabMode of Payment Account` mpa,`tabMode of Payment` mp
+        where mpa.parent = mp.name and mpa.company = %(company)s and mp.enabled = 1""",
     {'company': doc.company}, as_dict=1)
 
 def get_mode_of_payment_info(mode_of_payment, company):
     return frappe.db.sql("""
-		select mpa.default_account, mpa.parent, mp.type as type
-		from `tabMode of Payment Account` mpa,`tabMode of Payment` mp
-		where mpa.parent = mp.name and mpa.company = %s and mp.enabled = 1 and mp.name = %s""",
+        select mpa.default_account, mpa.parent, mp.type as type
+        from `tabMode of Payment Account` mpa,`tabMode of Payment` mp
+        where mpa.parent = mp.name and mpa.company = %s and mp.enabled = 1 and mp.name = %s""",
     (company, mode_of_payment), as_dict=1)
 
 @frappe.whitelist()
