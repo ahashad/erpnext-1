@@ -1194,8 +1194,9 @@ class SalesInvoice(SellingController):
     def make_loyalty_point_entry(self):
         returned_amount = self.get_returned_amount()
         #current_amount = flt(self.grand_total) - cint(self.loyalty_amount)
-        current_amount = flt(calculate_loyalty_amount(self)) - cint(self.loyalty_amount)
-        eligible_amount = current_amount - returned_amount
+        current_amount = flt(calculate_loyalty_amount(self)) - flt(self.loyalty_amount) - flt(self.base_discount_amount) - flt(returned_amount)
+        eligible_amount = current_amount if current_amount > 0 else 0
+        
         lp_details = get_loyalty_program_details_with_points(self.customer, company=self.company,
                 current_transaction_amount=current_amount, loyalty_program=self.loyalty_program,
                 expiry_date=self.posting_date, include_expired_entry=True)
@@ -1223,11 +1224,12 @@ class SalesInvoice(SellingController):
         from erpnext.stock.stock_ledger import get_valuation_rate
         loyalty_amount = 0.0
         for item in self.get("items"):
-            net_sales = item.base_net_amount
-            _rate = get_valuation_rate(item.item_code, item.warehouse, null, null, item.allow_zero_valuation_rate, frappe.db.get_values("Price List", {"selling": 1}, ['name', 'currency'])[0])
-            cost = item.stock_qty * _rate
-            net_profit = net_sales - cost
-            loyalty_amount += net_profit
+            if not item.is_fixed_asset:
+                net_sales = item.base_net_amount
+                _rate = get_valuation_rate(item.item_code, item.warehouse, null, null, item.allow_zero_valuation_rate, frappe.db.get_values("Price List", {"selling": 1}, ['name', 'currency'])[0])
+                cost = item.stock_qty * _rate
+                net_profit = net_sales - cost
+                loyalty_amount += net_profit
         return loyalty_amount if loyalty_amount > 0 else 0
 
     # valdite the redemption and then delete the loyalty points earned on cancel of the invoice
